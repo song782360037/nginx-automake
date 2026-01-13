@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nginx 模块定制编译平台</title>
+  <style>
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      margin: 0;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+    header {
+      background: #111827;
+      color: #fff;
+      padding: 20px 32px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    main {
+      padding: 24px 32px 40px;
+      display: grid;
+      gap: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .two-col {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      font-size: 14px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #f3f4f6;
+      margin-left: 8px;
+    }
+    .module-list {
+      display: grid;
+      gap: 12px;
+      max-height: 240px;
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    .module-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #e5e7eb;
+    }
+    .module-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 13px;
+    }
+    .log {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      min-height: 120px;
+      white-space: pre-wrap;
+      font-size: 12px;
+      max-height: 220px;
+      overflow: auto;
+    }
+    .error {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+    .success {
+      color: #047857;
+      font-weight: 600;
+    }
+    .muted {
+      color: #6b7280;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Nginx 模块定制编译平台</h1>
+  </header>
+  <main>
+    <section class="card grid">
+      <div>
+        <label for="nginxOutput"><strong>输入 nginx -V 输出</strong></label>
+        <textarea id="nginxOutput" placeholder="粘贴完整的 nginx -V 输出"></textarea>
+      </div>
+      <div>
+        <button id="parseBtn">解析配置</button>
+        <span id="parseStatus" class="badge">等待解析</span>
+      </div>
+      <div class="grid two-col">
+        <div>
+          <h3>解析结果</h3>
+          <div id="parseResult" class="status">暂无数据</div>
+        </div>
+        <div>
+          <h3>原始模块列表</h3>
+          <div id="moduleSummary" class="status">暂无数据</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card grid">
+      <div class="grid two-col">
+        <div>
+          <h3>第三方模块选择</h3>
+          <input id="moduleSearch" type="text" placeholder="搜索模块名称或描述" />
+          <div id="moduleList" class="module-list"></div>
+        </div>
+        <div>
+          <h3>自定义模块</h3>
+          <div class="grid">
+            <input id="customName" type="text" placeholder="模块名称" />
+            <input id="customRepo" type="text" placeholder="Git 仓库地址 (https://...)" />
+            <select id="customFlag">
+              <option value="add-module">静态模块 (add-module)</option>
+              <option value="add-dynamic-module">动态模块 (add-dynamic-module)</option>
+            </select>
+            <button id="addCustomBtn" class="secondary">添加自定义模块</button>
+          </div>
+          <div id="customList" class="module-list" style="margin-top: 12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card grid">
+      <div>
+        <button id="buildBtn" disabled>开始编译</button>
+        <span class="muted">系统将基于原始 nginx 参数自动生成脚本并执行编译。</span>
+      </div>
+      <div>
+        <h3>编译进度</h3>
+        <div id="jobStatus" class="status">等待任务</div>
+        <div id="jobSteps" class="status" style="margin-top: 8px;">暂无步骤</div>
+      </div>
+      <div>
+        <h3>实时日志</h3>
+        <div id="jobLogs" class="log">暂无日志</div>
+      </div>
+      <div>
+        <a id="downloadLink" href="#" style="display:none">下载编译产物</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      parsed: null,
+      modules: [],
+      customModules: [],
+      jobId: null,
+      polling: null,
+    };
+
+    const parseBtn = document.getElementById('parseBtn');
+    const buildBtn = document.getElementById('buildBtn');
+    const parseStatus = document.getElementById('parseStatus');
+    const parseResult = document.getElementById('parseResult');
+    const moduleSummary = document.getElementById('moduleSummary');
+    const moduleList = document.getElementById('moduleList');
+    const moduleSearch = document.getElementById('moduleSearch');
+    const customList = document.getElementById('customList');
+    const downloadLink = document.getElementById('downloadLink');
+
+    function renderModules(filter = '') {
+      moduleList.innerHTML = '';
+      const keyword = filter.trim().toLowerCase();
+      state.modules
+        .filter((mod) => !keyword || mod.name.toLowerCase().includes(keyword) || mod.description.toLowerCase().includes(keyword))
+        .forEach((mod) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'module-item';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = mod.name;
+          const label = document.createElement('div');
+          label.innerHTML = `<strong>${mod.name}</strong><div class="muted">${mod.description}</div><div class="muted">${mod.repo}</div>`;
+          wrapper.appendChild(checkbox);
+          wrapper.appendChild(label);
+          moduleList.appendChild(wrapper);
+        });
+    }
+
+    function renderCustomModules() {
+      customList.innerHTML = '';
+      if (state.customModules.length === 0) {
+        customList.innerHTML = '<div class="muted">暂无自定义模块</div>';
+        return;
+      }
+      state.customModules.forEach((mod, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'module-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.dataset.index = index;
+        const label = document.createElement('div');
+        label.innerHTML = `<strong>${mod.name}</strong><div class="muted">${mod.repo}</div><div class="muted">${mod.flag}</div>`;
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        customList.appendChild(wrapper);
+      });
+    }
+
+    function updateParseResult() {
+      if (!state.parsed) {
+        parseResult.textContent = '暂无数据';
+        moduleSummary.textContent = '暂无数据';
+        buildBtn.disabled = true;
+        return;
+      }
+      parseResult.innerHTML = `版本：${state.parsed.version}<br/>${state.parsed.compiler || ''}<br/>${state.parsed.builtBy || ''}`;
+      moduleSummary.textContent = state.parsed.modules.join('\n') || '未检测到模块参数';
+      buildBtn.disabled = false;
+    }
+
+    async function loadModules() {
+      const res = await fetch('/api/modules');
+      state.modules = await res.json();
+      renderModules();
+    }
+
+    parseBtn.addEventListener('click', async () => {
+      const output = document.getElementById('nginxOutput').value.trim();
+      if (!output) {
+        alert('请先粘贴 nginx -V 输出');
+        return;
+      }
+      parseStatus.textContent = '解析中...';
+      const res = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ output }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        parseStatus.textContent = '解析失败';
+        parseResult.innerHTML = `<span class="error">${data.error}</span>`;
+        state.parsed = null;
+        updateParseResult();
+        return;
+      }
+      parseStatus.textContent = '解析完成';
+      state.parsed = data;
+      updateParseResult();
+    });
+
+    moduleSearch.addEventListener('input', (e) => {
+      renderModules(e.target.value);
+    });
+
+    document.getElementById('addCustomBtn').addEventListener('click', () => {
+      const name = document.getElementById('customName').value.trim();
+      const repo = document.getElementById('customRepo').value.trim();
+      const flag = document.getElementById('customFlag').value;
+      if (!name || !repo) {
+        alert('请填写自定义模块名称和仓库地址');
+        return;
+      }
+      state.customModules.push({ name, repo, flag });
+      document.getElementById('customName').value = '';
+      document.getElementById('customRepo').value = '';
+      renderCustomModules();
+    });
+
+    buildBtn.addEventListener('click', async () => {
+      if (!state.parsed) {
+        alert('请先解析 nginx 配置');
+        return;
+      }
+      const selected = Array.from(moduleList.querySelectorAll('input[type="checkbox"]'))
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => checkbox.value);
+      const customModules = Array.from(customList.querySelectorAll('input[type="checkbox"]'))
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => state.customModules[checkbox.dataset.index]);
+
+      const res = await fetch('/api/build', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          output: document.getElementById('nginxOutput').value.trim(),
+          moduleNames: selected,
+          customModules: customModules || [],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || '提交任务失败');
+        return;
+      }
+      state.jobId = data.id;
+      downloadLink.style.display = 'none';
+      startPolling();
+    });
+
+    function startPolling() {
+      if (state.polling) {
+        clearInterval(state.polling);
+      }
+      state.polling = setInterval(async () => {
+        if (!state.jobId) return;
+        const res = await fetch(`/api/jobs/${state.jobId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('jobStatus').textContent = `状态：${data.status}`;
+        const stepText = data.steps
+          .map((step) => `${step.name}：${step.status}${step.message ? ' - ' + step.message : ''}`)
+          .join('\n');
+        document.getElementById('jobSteps').textContent = stepText || '暂无步骤';
+        document.getElementById('jobLogs').textContent = (data.logs || []).slice(-120).join('\n') || '暂无日志';
+        if (data.status === 'success') {
+          downloadLink.href = `/api/jobs/${data.id}/download`;
+          downloadLink.textContent = '下载编译产物';
+          downloadLink.style.display = 'inline-block';
+          clearInterval(state.polling);
+        }
+        if (data.status === 'failed') {
+          document.getElementById('jobStatus').innerHTML = `状态：<span class="error">失败</span> ${data.error || ''}`;
+          clearInterval(state.polling);
+        }
+      }, 2000);
+    }
+
+    renderCustomModules();
+    loadModules();
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "ngx_brotli",
+    "repo": "https://github.com/google/ngx_brotli.git",
+    "description": "Brotli 压缩模块",
+    "flag": "add-module",
+    "path": "ngx_brotli"
+  },
+  {
+    "name": "lua-nginx-module",
+    "repo": "https://github.com/openresty/lua-nginx-module.git",
+    "description": "Lua 脚本支持模块（需要 LuaJIT）",
+    "flag": "add-module",
+    "path": "lua-nginx-module"
+  },
+  {
+    "name": "headers-more",
+    "repo": "https://github.com/openresty/headers-more-nginx-module.git",
+    "description": "响应头增强模块",
+    "flag": "add-module",
+    "path": "headers-more-nginx-module"
+  },
+  {
+    "name": "nginx-module-vts",
+    "repo": "https://github.com/vozlt/nginx-module-vts.git",
+    "description": "VTS 状态统计模块",
+    "flag": "add-module",
+    "path": "nginx-module-vts"
+  },
+  {
+    "name": "ngx_cache_purge",
+    "repo": "https://github.com/FRiCKLE/ngx_cache_purge.git",
+    "description": "缓存清理模块",
+    "flag": "add-module",
+    "path": "ngx_cache_purge"
+  }
+]
