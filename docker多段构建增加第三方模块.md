@@ -176,9 +176,3 @@ ngx_http_geoip_module-debug.so        ngx_http_js_module-debug.so       �
 ngx_http_geoip_module.so        ngx_http_js_module.so               ngx_http_vhost_traffic_status_module.so    ngx_stream_js_module-debug.so
 ngx_http_headers_more_filter_module.so    ngx_http_memc_module.so               ngx_http_xslt_filter_module-debug.so    ngx_stream_js_module.so
 ```
-
-> 因为折腾一天流水线改造，所以功能上我还没有验证，应该没什么问题，待我边整理流水线边把acme这个功能输出给大家！
-
-![image-20250908171958500](https://mmbiz.qpic.cn/mmbiz_png/Yka3dMGcR38vAqWKPtSKeBahWjSs8oqezOQQ7voEXib0wVPlOpIqVNP7ib6eo5h5UpZPw1mhVG8XZyb3IXbpgKEQ/640?wx_fmt=png&from=appmsg&watermark=1#imgIndex=0 "null")
-
-image-20250908171958500
