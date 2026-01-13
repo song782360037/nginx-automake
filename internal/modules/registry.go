@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -21,6 +22,8 @@ type Module struct {
 type Registry struct {
 	modules map[string]Module
 }
+
+var validModuleName = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
 func LoadRegistry(data []byte) (*Registry, error) {
 	var list []Module
@@ -53,6 +56,9 @@ func (r *Registry) Get(name string) (Module, bool) {
 func ValidateCustomModule(name, repo, flag string) (Module, error) {
 	if strings.TrimSpace(name) == "" {
 		return Module{}, errors.New("模块名称不能为空")
+	}
+	if !validModuleName.MatchString(name) {
+		return Module{}, errors.New("模块名称仅支持字母、数字、点、下划线和短横线")
 	}
 	if strings.TrimSpace(repo) == "" {
 		return Module{}, errors.New("模块仓库地址不能为空")
